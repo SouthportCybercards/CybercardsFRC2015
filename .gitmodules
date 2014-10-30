@@ -1,0 +1,3 @@
+[submodule "CybercardsFRC.wiki"]
+	path = CybercardsFRC.wiki
+	url = git@github.com:SouthportCybercards/CybercardsFRC.wiki.git
