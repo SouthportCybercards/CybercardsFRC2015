@@ -1,4 +1,5 @@
 #include "WPILib.h"
+#include <iostream>
 
 class Robot: public IterativeRobot
 {
@@ -51,7 +52,17 @@ private:
 
 	void TeleopPeriodic()
 	{
-		myRobot.ArcadeDrive(stick); // drive with arcade style (use right stick)
+		//myRobot.ArcadeDrive(stick); // drive with arcade style (use right stick)
+
+		//Get the x-axis of the joystick
+		float yAxisVal = stick.GetY();
+		std::cout << "yAxisVal: " << yAxisVal << std::endl;
+
+		//Convert input to [-1.0, 1.0] range
+		//Don't need to - already in the correct range
+
+		//Control the motor with PWM0 value
+		myRobot.Drive(yAxisVal, 0.0);
 	}
 
 	void TestPeriodic()
