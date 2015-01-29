@@ -48,3 +48,5 @@
 .cproject
 .settings
 
+#Specific Files
+/sysProps.xml
