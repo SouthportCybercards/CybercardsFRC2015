@@ -43,3 +43,8 @@
 
 #Specific Paths
 /2014Robot/Documentation/*
+/Debug
+.project
+.cproject
+.settings
+
