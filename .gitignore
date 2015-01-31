@@ -49,4 +49,4 @@
 .settings
 
 #Specific Files
-/sysProps.xml
+*sysProps.xml
