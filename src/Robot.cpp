@@ -62,6 +62,28 @@ private:
 
 	void TeleopPeriodic()
 	{
+		//Handle robot control
+		MainRobotControlLoop();
+
+		//TODO - Handle logging, etc.
+	}
+
+	//Main control loop function
+	void MainRobotControlLoop(void){
+
+		//Handle the drive base control
+		DriveBaseControl();
+
+		//Handle the main lift
+		//InnerLiftControl();
+
+		//Handle the outer lift
+		//OuterLiftControl();
+	}
+
+	//Drive base control
+	void DriveBaseControl(void){
+
 		//Local declarations
 		float driveThreshold = 0.005;
 
@@ -82,6 +104,20 @@ private:
 		} else {
 			robotDrive.TankDrive(0.0, 0.0); 	// stop robot
 		}
+
+	}
+
+	//Inner lift control
+	void InnerLiftControl(void){
+
+		//This is where we write code to control the inner lift
+
+	}
+
+	//Outer lift control
+	void OuterLiftControl(void){
+
+		//This is where we write code to control the outer lift
 
 	}
 
