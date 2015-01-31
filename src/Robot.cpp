@@ -3,20 +3,30 @@
 
 class Robot: public IterativeRobot
 {
-	RobotDrive myRobot; // robot drive system
-	Joystick stick,stick2;
+	RobotDrive robotDrive; // robot drive system
+	Joystick leftStick,rightStick;
 	LiveWindow *lw;
 	int autoLoopCounter;
 
 public:
+	//Class constructor
+	// Initialize the robot drive to:
+	// Drive base:
+	// Left		Front	Right
+	// +---------------------+
+	// | PWM 0 			PWM 1|
+	// | 		Robot		 |
+	// | PWM 2 			PWM 3|
+	// +---------------------+
+	//			Back
 	Robot() :
-		myRobot(0, 2, 1, 3),	// these must be initialized in the same order
-		stick(0),
-		stick2(1),				// as they are declared above.
+		robotDrive(0, 2, 1, 3),	// these must be initialized in the same order
+		leftStick(0),
+		rightStick(1),				// as they are declared above.
 		lw(NULL),
 		autoLoopCounter(0)
 	{
-		myRobot.SetExpiration(0.1);
+		robotDrive.SetExpiration(0.1);
 	}
 
 private:
@@ -34,14 +44,14 @@ private:
 	{
 		if(autoLoopCounter < 100) //Check if we've completed 100 loops (approximately 2 seconds)
 		{
-			myRobot.Drive(-0.5, 0.0); 	// drive forwards half speed
+			robotDrive.Drive(-0.5, 0.0); 	// drive forwards half speed
 			autoLoopCounter++;
 		} else if(autoLoopCounter >= 100) {
 			 //Check if we've completed 100 loops (approximately 2 seconds)
-			myRobot.Drive(0.5, 0.0); 	// drive backwards half speed
+			robotDrive.Drive(0.5, 0.0); 	// drive backwards half speed
 			autoLoopCounter++;
 		} //else {
-			//myRobot.Drive(0.0, 0.0); 	// stop robot
+			//robotDrive.Drive(0.0, 0.0); 	// stop robot
 		//}
 	}
 
@@ -56,8 +66,8 @@ private:
 		float driveThreshold = 0.005;
 
 		//Get the x-axis of the joystick
-		float yAxis1 = stick.GetY();
-		float yAxis2 = stick2.GetY();
+		float yAxis1 = leftStick.GetY();
+		float yAxis2 = rightStick.GetY();
 
 		//std::cout << "yAxisVal: " << yAxisVal << std::endl;
 
@@ -68,9 +78,9 @@ private:
 		//NOTE - currently this doesn't scale up the input from 0.0 after the deadband region -- it just uses the raw value.
 		if(yAxis1 >= driveThreshold || yAxis2 >= driveThreshold || yAxis1 <= -driveThreshold || yAxis2 <= -driveThreshold )
 		{
-			myRobot.TankDrive(stick,stick2); 	// drive Forwards
+			robotDrive.TankDrive(leftStick,rightStick); 	// drive Forwards
 		} else {
-			myRobot.TankDrive(0.0, 0.0); 	// stop robot
+			robotDrive.TankDrive(0.0, 0.0); 	// stop robot
 		}
 
 	}
