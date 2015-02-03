@@ -1,12 +1,36 @@
 #include "WPILib.h"
+#include "Joystick.h"
 #include <iostream>
 
 class Robot: public IterativeRobot
 {
 	RobotDrive robotDrive; // robot drive system
-	Joystick leftStick,rightStick;
+	Joystick leftStick, rightStick, leftOpStick, rightOpStick;
+	Talon LeftOuterLiftMotor;
+	Talon RightOuterLiftMotor;
+	Talon LeftElbowMotor;
+	Talon RightElbowMotor;
+	//Talon InnerLiftMotor1;
+	//Talon InnerLiftMotor2;
 	LiveWindow *lw;
 	int autoLoopCounter;
+
+	//Motor Direction output constants
+	float LeftArmUpSpeed = 1.0;
+	float RightArmUpSpeed = 1.0;
+	float CenterLiftUpSpeed = 1.0;
+	float LeftElbowInSpeed = 1.0;
+	float RightElbowInSpeed = 1.0;
+
+	//Joystick button input constants
+	int InnerLiftUpDirection = 0;
+	int InnerLiftDownDirection = 1;
+	int LeftLiftUpButton = 6;
+	int LeftLiftDownButton = 4;
+	int RightLiftUpButton = 5;
+	int RightLiftDownButton = 3;
+	int LeftArmElbowInDirection = 1;
+	int RightArmElbowInDirection = 1;
 
 public:
 	//Class constructor
@@ -20,13 +44,24 @@ public:
 	// +---------------------+
 	//			Back
 	Robot() :
-		robotDrive(0, 2, 1, 3),	// these must be initialized in the same order
+		//robotDrive(0, 2, 1, 3),	// these must be initialized in the same order
+		robotDrive(9, 8, 7, 6),	// these must be initialized in the same order
 		leftStick(0),
-		rightStick(1),				// as they are declared above.
+		rightStick(1),// as they are declared above.
+		leftOpStick(2),
+		rightOpStick(3),
+		LeftOuterLiftMotor(0),
+		RightOuterLiftMotor(1),
+		LeftElbowMotor(2),
+		RightElbowMotor(3),
 		lw(NULL),
 		autoLoopCounter(0)
 	{
 		robotDrive.SetExpiration(0.1);
+		robotDrive.SetInvertedMotor(robotDrive.kFrontLeftMotor,false);
+		robotDrive.SetInvertedMotor(robotDrive.kFrontRightMotor,false);
+		robotDrive.SetInvertedMotor(robotDrive.kRearLeftMotor,false);
+		robotDrive.SetInvertedMotor(robotDrive.kRearRightMotor,false);
 	}
 
 private:
@@ -78,7 +113,7 @@ private:
 		//InnerLiftControl();
 
 		//Handle the outer lift
-		//OuterLiftControl();
+		OuterLiftControl();
 	}
 
 	//Drive base control
@@ -87,9 +122,9 @@ private:
 		//Local declarations
 		float driveThreshold = 0.005;
 
-		//Get the x-axis of the joystick
-		float yAxis1 = leftStick.GetY();
-		float yAxis2 = rightStick.GetY();
+		//Get the y-axis of the joystick
+		float yAxis1 = 0.75 * leftStick.GetY();
+		float yAxis2 = 0.72 * rightStick.GetY();
 
 		//std::cout << "yAxisVal: " << yAxisVal << std::endl;
 
@@ -100,7 +135,7 @@ private:
 		//NOTE - currently this doesn't scale up the input from 0.0 after the deadband region -- it just uses the raw value.
 		if(yAxis1 >= driveThreshold || yAxis2 >= driveThreshold || yAxis1 <= -driveThreshold || yAxis2 <= -driveThreshold )
 		{
-			robotDrive.TankDrive(leftStick,rightStick); 	// drive Forwards
+			robotDrive.TankDrive(-yAxis1,-yAxis2); 	// drive Forwards
 		} else {
 			robotDrive.TankDrive(0.0, 0.0); 	// stop robot
 		}
@@ -112,13 +147,64 @@ private:
 
 		//This is where we write code to control the inner lift
 
+		//Read the lift control inputs (buttons on the xbox controller - which buttons?)
+		//void XboxController;"A Button, B Button, X Button, Y Button";
+
+		//bool xBoxInput1Button = xBoxController.GetButton();
+
+		//Based on the input, control the motor
+
 	}
+
 
 	//Outer lift control
 	void OuterLiftControl(void){
 
 		//This is where we write code to control the outer lift
+		int leftUpPressed = leftOpStick.GetRawButton(LeftLiftUpButton);
+		int leftDownPressed = leftOpStick.GetRawButton(LeftLiftDownButton);
+		int rightUpPressed = rightOpStick.GetRawButton(RightLiftUpButton);
+		int rightDownPressed = rightOpStick.GetRawButton(RightLiftDownButton);
+		float rightElbowValue = rightOpStick.GetZ();
+		float leftElbowValue = leftOpStick.GetZ();
 
+		//Local Declarations-- makes joystick input close to zero zero
+		float elbowThreshold = 0.005;
+
+		if (leftUpPressed == true){
+			LeftOuterLiftMotor.Set(LeftArmUpSpeed);
+		}
+		else if (leftDownPressed == true){
+			LeftOuterLiftMotor.Set(LeftArmUpSpeed * -1);
+		}
+		else{
+			LeftOuterLiftMotor.Set(0.0);
+		}
+
+		if (rightUpPressed == true){
+			RightOuterLiftMotor.Set(RightArmUpSpeed);
+		}
+		else if (rightDownPressed == true){
+			RightOuterLiftMotor.Set(RightArmUpSpeed * -1);
+		}
+		else{
+			RightOuterLiftMotor.Set(0.0);
+		}
+
+		if(rightElbowValue >= elbowThreshold || rightElbowValue <= -elbowThreshold ){
+			RightElbowMotor.Set(rightElbowValue);
+		}
+		else{
+			RightElbowMotor.Set(0.0);
+		}
+
+		if(leftElbowValue >= elbowThreshold || leftElbowValue <= -elbowThreshold){
+			LeftElbowMotor.Set(leftElbowValue);
+		}
+		else{
+			LeftElbowMotor.Set(0.0);
+		}
+		//...
 	}
 
 	void TestPeriodic()
