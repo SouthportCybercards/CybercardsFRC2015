@@ -10,27 +10,27 @@ class Robot: public IterativeRobot
 	Talon RightOuterLiftMotor;
 	Talon LeftElbowMotor;
 	Talon RightElbowMotor;
-	//Talon InnerLiftMotor1;
-	//Talon InnerLiftMotor2;
+	Talon LeftInnerLiftMotor;
+	Talon RightInnerLiftMotor;
 	LiveWindow *lw;
 	int autoLoopCounter;
 
 	//Motor Direction output constants
 	float LeftArmUpSpeed = 1.0;
 	float RightArmUpSpeed = 1.0;
-	float CenterLiftUpSpeed = 1.0;
 	float LeftElbowInSpeed = 1.0;
 	float RightElbowInSpeed = 1.0;
+	float InnerLiftSpeed = 1.0;
+	float LeftInnerLiftUpDirection = -1.0;
+	float RightInnerLiftUpDirection = 1.0;
+	float LeftArmElbowInDirection = 1.0;
+	float RightArmElbowInDirection = 1.0;
 
 	//Joystick button input constants
-	int InnerLiftUpDirection = 0;
-	int InnerLiftDownDirection = 1;
-	int LeftLiftUpButton = 6;
-	int LeftLiftDownButton = 4;
-	int RightLiftUpButton = 5;
-	int RightLiftDownButton = 3;
-	int LeftArmElbowInDirection = 1;
-	int RightArmElbowInDirection = 1;
+	int LeftInnerManualUpButton = 5;
+	int LeftInnerManualDownButton = 3;
+	int RightInnerManualUpButton = 6;
+	int RightInnerManualDownButton = 4;
 
 public:
 	//Class constructor
@@ -38,13 +38,12 @@ public:
 	// Drive base:
 	// Left		Front	Right
 	// +---------------------+
-	// | PWM 0 			PWM 1|
+	// | PWM 9 			PWM 7|
 	// | 		Robot		 |
-	// | PWM 2 			PWM 3|
+	// | PWM 8 			PWM 6|
 	// +---------------------+
 	//			Back
 	Robot() :
-		//robotDrive(0, 2, 1, 3),	// these must be initialized in the same order
 		robotDrive(9, 8, 7, 6),	// these must be initialized in the same order
 		leftStick(0),
 		rightStick(1),// as they are declared above.
@@ -54,6 +53,8 @@ public:
 		RightOuterLiftMotor(1),
 		LeftElbowMotor(2),
 		RightElbowMotor(3),
+		LeftInnerLiftMotor(4),
+		RightInnerLiftMotor(5),
 		lw(NULL),
 		autoLoopCounter(0)
 	{
@@ -110,7 +111,7 @@ private:
 		DriveBaseControl();
 
 		//Handle the main lift
-		//InnerLiftControl();
+		InnerLiftControl();
 
 		//Handle the outer lift
 		OuterLiftControl();
@@ -144,67 +145,73 @@ private:
 
 	//Inner lift control
 	void InnerLiftControl(void){
+		int leftManualUp = leftOpStick.GetRawButton(LeftInnerManualUpButton);
+		int leftManualDown = leftOpStick.GetRawButton(LeftInnerManualDownButton);
+		int rightManualUp = rightOpStick.GetRawButton(RightInnerManualUpButton);
+		int rightManualDown = rightOpStick.GetRawButton(RightInnerManualDownButton);
 
-		//This is where we write code to control the inner lift
-
-		//Read the lift control inputs (buttons on the xbox controller - which buttons?)
-		//void XboxController;"A Button, B Button, X Button, Y Button";
-
-		//bool xBoxInput1Button = xBoxController.GetButton();
-
-		//Based on the input, control the motor
-
+		if (leftManualUp == true || rightManualUp == true){
+			LeftInnerLiftMotor.Set(InnerLiftSpeed * LeftInnerLiftUpDirection);
+			RightInnerLiftMotor.Set(InnerLiftSpeed * RightInnerLiftUpDirection);
+		}
+		else if (leftManualDown == true || rightManualDown == true){
+			LeftInnerLiftMotor.Set(InnerLiftSpeed * LeftInnerLiftUpDirection * -1);
+			RightInnerLiftMotor.Set(InnerLiftSpeed * RightInnerLiftUpDirection * -1);
+		}
+		else{
+			LeftInnerLiftMotor.Set(0.0);
+			RightInnerLiftMotor.Set(0.0);
+		}
 	}
 
 
 	//Outer lift control
 	void OuterLiftControl(void){
-
-		//This is where we write code to control the outer lift
-		int leftUpPressed = leftOpStick.GetRawButton(LeftLiftUpButton);
-		int leftDownPressed = leftOpStick.GetRawButton(LeftLiftDownButton);
-		int rightUpPressed = rightOpStick.GetRawButton(RightLiftUpButton);
-		int rightDownPressed = rightOpStick.GetRawButton(RightLiftDownButton);
+		//local declarations- get pov input
+		int leftPOV = leftOpStick.GetPOV();
+		int rightPOV = rightOpStick.GetPOV();
 		float rightElbowValue = rightOpStick.GetZ();
 		float leftElbowValue = leftOpStick.GetZ();
 
 		//Local Declarations-- makes joystick input close to zero zero
-		float elbowThreshold = 0.005;
+		float elbowThreshold = 0.3;
 
-		if (leftUpPressed == true){
+		//left stick motor control
+		if (leftPOV == 315 || leftPOV == 0 || leftPOV == 45){
 			LeftOuterLiftMotor.Set(LeftArmUpSpeed);
 		}
-		else if (leftDownPressed == true){
+		else if (leftPOV == 135 || leftPOV == 180 || leftPOV == 225){
 			LeftOuterLiftMotor.Set(LeftArmUpSpeed * -1);
 		}
 		else{
 			LeftOuterLiftMotor.Set(0.0);
 		}
 
-		if (rightUpPressed == true){
+		//Right stick motor control
+		if (rightPOV == 315 || rightPOV == 0 || rightPOV == 45){
 			RightOuterLiftMotor.Set(RightArmUpSpeed);
 		}
-		else if (rightDownPressed == true){
+		else if (rightPOV == 135 || rightPOV == 180 || rightPOV == 225){
 			RightOuterLiftMotor.Set(RightArmUpSpeed * -1);
 		}
 		else{
 			RightOuterLiftMotor.Set(0.0);
 		}
 
+		//Elbow motor Controls
 		if(rightElbowValue >= elbowThreshold || rightElbowValue <= -elbowThreshold ){
-			RightElbowMotor.Set(rightElbowValue);
+			RightElbowMotor.Set(rightElbowValue * RightArmElbowInDirection);
 		}
 		else{
 			RightElbowMotor.Set(0.0);
 		}
 
 		if(leftElbowValue >= elbowThreshold || leftElbowValue <= -elbowThreshold){
-			LeftElbowMotor.Set(leftElbowValue);
+			LeftElbowMotor.Set(leftElbowValue * LeftArmElbowInDirection);
 		}
 		else{
 			LeftElbowMotor.Set(0.0);
 		}
-		//...
 	}
 
 	void TestPeriodic()
