@@ -12,6 +12,7 @@ class Robot: public IterativeRobot
 	Talon RightElbowMotor;
 	Talon LeftInnerLiftMotor;
 	Talon RightInnerLiftMotor;
+	DigitalInput InnerLiftZeroSensor;
 	LiveWindow *lw;
 	int autoLoopCounter;
 
@@ -31,6 +32,9 @@ class Robot: public IterativeRobot
 	int LeftInnerManualDownButton = 3;
 	int RightInnerManualUpButton = 6;
 	int RightInnerManualDownButton = 4;
+
+	//Class members
+	bool InnerLiftStateControl;
 
 public:
 	//Class constructor
@@ -55,6 +59,7 @@ public:
 		RightElbowMotor(3),
 		LeftInnerLiftMotor(4),
 		RightInnerLiftMotor(5),
+		InnerLiftZeroSensor(0),
 		lw(NULL),
 		autoLoopCounter(0)
 	{
@@ -63,6 +68,8 @@ public:
 		robotDrive.SetInvertedMotor(robotDrive.kFrontRightMotor,false);
 		robotDrive.SetInvertedMotor(robotDrive.kRearLeftMotor,false);
 		robotDrive.SetInvertedMotor(robotDrive.kRearRightMotor,false);
+
+		InnerLiftStateControl = false;
 	}
 
 private:
@@ -107,11 +114,21 @@ private:
 	//Main control loop function
 	void MainRobotControlLoop(void){
 
+		//Get all the user inputs from the joysticks
+		GetAllUserInput();
+
+		//Based on the
+		DetermineRobotState();
+
 		//Handle the drive base control
 		DriveBaseControl();
 
-		//Handle the main lift
-		InnerLiftControl();
+		if(innerLiftStateControl == true){
+			//Handle the main lift
+			InnerLiftStateControl();
+		} else {
+			InnerLiftManualControl();
+		}
 
 		//Handle the outer lift
 		OuterLiftControl();
@@ -144,7 +161,8 @@ private:
 	}
 
 	//Inner lift control
-	void InnerLiftControl(void){
+	void InnerLiftManualControl(void){
+
 		int leftManualUp = leftOpStick.GetRawButton(LeftInnerManualUpButton);
 		int leftManualDown = leftOpStick.GetRawButton(LeftInnerManualDownButton);
 		int rightManualUp = rightOpStick.GetRawButton(RightInnerManualUpButton);
@@ -162,6 +180,10 @@ private:
 			LeftInnerLiftMotor.Set(0.0);
 			RightInnerLiftMotor.Set(0.0);
 		}
+
+		//Testing limit switch
+		bool innerLiftSwitchVal = InnerLiftZeroSensor.Get();
+		std::cout << "innerLiftSwitchVal: " << innerLiftSwitchVal << std::endl;
 	}
 
 
