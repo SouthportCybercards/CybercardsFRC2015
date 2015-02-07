@@ -14,6 +14,12 @@ class Robot: public IterativeRobot
 	Talon RightInnerLiftMotor;
 	DigitalInput InnerLiftZeroSensor;
 	Encoder InnerLiftMotorEncoder;
+	Encoder LeftElbowMotorEncoder;
+	Encoder RightElbowMotorEncoder;
+	DigitalInput LeftElbowZeroSensor;
+	DigitalInput RightElbowZeroSensor;
+	AnalogInput LeftOuterLiftZeroSensor;
+	AnalogInput RightOuterLiftZeroSensor;
 	LiveWindow *lw;
 	int autoLoopCounter;
 
@@ -38,14 +44,22 @@ class Robot: public IterativeRobot
 	const int leftInnerAutoDownButton = 4;
 	const int rightInnerAutoUpButton = 5;
 	const int rightInnerAutoDownButton = 3;
+	const int leftElbowAutoButton = 1;
+	const int rightElbowAutoButton = 1;
 
 	//Inner Lift constants
 	const int innerLiftEncoderValue = 10;
 	const int maxLevel = 6;
 	const int minLevel = 0;
 
+	//z axis constant
+	const float elbowThreshold = 0.3;
+
 	//Class members
 	bool innerLiftStateControl;
+	int targetLevel;
+	int innerLiftEncoderZeroValue;
+	int targetInnerLiftEncoderValue;
 
 public:
 	//Class constructor
@@ -71,7 +85,13 @@ public:
 		LeftInnerLiftMotor(4),
 		RightInnerLiftMotor(5),
 		InnerLiftZeroSensor(0),
-		InnerLiftMotorEncoder(5, 6, false, InnerLiftMotorEncoder.k4X),
+		InnerLiftMotorEncoder(1, 2, false, InnerLiftMotorEncoder.k4X),
+		LeftElbowMotorEncoder(3, 4, false, LeftElbowMotorEncoder.k4X),
+		RightElbowMotorEncoder(5, 6, false, RightElbowMotorEncoder.k4X),
+		LeftElbowZeroSensor(7),
+		RightElbowZeroSensor(8),
+		LeftOuterLiftZeroSensor(0),
+		RightOuterLiftZeroSensor(1),
 		lw(NULL),
 		autoLoopCounter(0)
 	{
@@ -81,7 +101,11 @@ public:
 		RobotDrive.SetInvertedMotor(RobotDrive.kRearLeftMotor,false);
 		RobotDrive.SetInvertedMotor(RobotDrive.kRearRightMotor,false);
 
+		//Default variables to initial known state
 		innerLiftStateControl = false;
+		targetLevel = 0;
+		innerLiftEncoderZeroValue = 0; //TODO - is this a good initial value?
+		targetInnerLiftEncoderValue = 0; //TODO - is this a good initial value?
 	}
 
 private:
@@ -144,6 +168,8 @@ private:
 
 		//Handle the outer lift
 		OuterLiftControl();
+
+		ElbowControl();
 	}
 
 	//Drive base control
@@ -198,97 +224,65 @@ private:
 		//std::cout << "innerLiftSwitchVal: " << innerLiftSwitchVal << std::endl;
 	}
 
+	//Function to control the inner lift with automatic state control
 	void InnerLiftAutoControl(void){
-		int targetLevel;
-		int currentInnerLiftEncoderValue = InnerLiftMotorEncoder.Get();
-		int targetInnerLiftEncoderValue;
-		int leftAutoUp = LeftOpStick.GetRawButton(leftInnerAutoUpButton);
-		int leftAutoDown = LeftOpStick.GetRawButton(leftInnerAutoDownButton);
-		int rightAutoUp = RightOpStick.GetRawButton(rightInnerAutoUpButton);
-		int rightAutoDown = RightOpStick.GetRawButton(rightInnerAutoDownButton);
-		int InnerLiftEncoderZeroValue;
 
+		//Local declarations
+		//int targetLevel;
+		//int targetInnerLiftEncoderValue;
+		//int innerLiftEncoderZeroValue;
+
+		//Get the current states of the encoder and limit switches.
+		int currentInnerLiftEncoderValue = InnerLiftMotorEncoder.Get();
+		bool leftAutoUp = LeftOpStick.GetRawButton(leftInnerAutoUpButton);
+		bool leftAutoDown = LeftOpStick.GetRawButton(leftInnerAutoDownButton);
+		bool rightAutoUp = RightOpStick.GetRawButton(rightInnerAutoUpButton);
+		bool rightAutoDown = RightOpStick.GetRawButton(rightInnerAutoDownButton);
+		bool innerZeroLimitSwitch = InnerLiftZeroSensor.Get();
+
+		//If lift is zeroed - based on the limit switch - set the class member innerLiftEncoderZeroValue
+		//	to record what the zeroed encoder values is.
+		//TODO - perhaps this should be run regardless if in auto control or not.
+		if(innerZeroLimitSwitch == true){
+			innerLiftEncoderZeroValue = currentInnerLiftEncoderValue;
+		}
+
+		//Determine what the target level is, based on user input
+		//If either of the state up buttons is pressed, update the target level to move to.
+		//TODO - should we debounce this?
+		// For example, we may want to only increment as we see an entire - button press then button release cycle.
 		if (leftAutoUp == true || rightAutoUp == true){
 			if (targetLevel < maxLevel){
 				targetLevel++;
 			}
 		}
+		//If either of the state down buttons is pressed, update the target level to move to.
+		//TODO - should we debounce this?
 		else if(leftAutoDown == true || rightAutoDown == true){
 			if(targetLevel > minLevel){
 				targetLevel--;
 			}
 		}
-		else{}
+		else{
+			//Intentionally empty
+		}
 
-		targetInnerLiftEncoderValue = (targetLevel * innerLiftEncoderValue);
+		//Determine the target encoder value, based on the target level
+		targetInnerLiftEncoderValue = ((targetLevel * innerLiftEncoderValue) + innerLiftEncoderZeroValue);
 
-		if ((currentInnerLiftEncoderValue < targetInnerLiftEncoderValue) && !InnerLiftEncoderZeroValue){
+		//Based on the target encoder value, handle motor commands.
+		if ((currentInnerLiftEncoderValue < targetInnerLiftEncoderValue) && !innerZeroLimitSwitch){
 			LeftInnerLiftMotor.Set(innerLiftSpeed * leftInnerLiftUpDirection);
 			RightInnerLiftMotor.Set(innerLiftSpeed * rightInnerLiftUpDirection);
 		}
-		else if ((currentInnerLiftEncoderValue > targetInnerLiftEncoderValue) && !InnerLiftEncoderZeroValue){
+		else if ((currentInnerLiftEncoderValue > targetInnerLiftEncoderValue) && !innerZeroLimitSwitch){
 			LeftInnerLiftMotor.Set(innerLiftSpeed * leftInnerLiftUpDirection * -1);
 			RightInnerLiftMotor.Set(innerLiftSpeed * rightInnerLiftUpDirection * -1);
-		}
-		else if (){
-
-		}
-
-		/*
-		bool InnerLiftUp;
-		bool InnerLiftDown;
-
-		int TargetUpInnerLiftEncoderValue;
-		int TargetDownInnerLiftEncoderValue;
-		int CurrentInnerLiftEncoderValue = InnerLiftMotorEncoder.Get();
-		int leftAutoUp = leftOpStick.GetRawButton(LeftInnerAutoUpButton);
-		int leftAutoDown = leftOpStick.GetRawButton(LeftInnerAutoDownButton);
-		int rightAutoUp = rightOpStick.GetRawButton(RightInnerAutoUpButton);
-		int rightAutoDown = rightOpStick.GetRawButton(RightInnerAutoDownButton);
-
-		TargetUpInnerLiftEncoderValue = (InnerLiftEncoderValue + InnerLiftEncoderZeroValue);
-		TargetUpInnerLiftEncoderValue = (InnerLiftEncoderValue - InnerLiftEncoderZeroValue);
-
-		if ((leftAutoUp == true || rightAutoUp == true) && !InnerLiftZeroSensor){
-			if (CurrentInnerLiftEncoderValue < TargetUpInnerLiftEncoderValue){
-				InnerLiftUp = true;
-				InnerLiftDown = false;
-			}
-			else {
-				InnerLiftUp = false;
-				InnerLiftDown = false;
-			}
-		}
-		else if ((leftAutoDown == true || rightAutoDown == true) && !InnerLiftZeroSensor){
-			if(CurrentInnerLiftEncoderValue > 0){
-				InnerLiftUp = false;
-				InnerLiftDown = true;
-			}
-			else {
-				InnerLiftUp = false;
-				InnerLiftDown = false;
-			}
-		}
-		else if (InnerLiftZeroSensor){
-			InnerLiftUp = false;
-			InnerLiftDown = false;
-			InnerLiftEncoderZeroValue = InnerLiftMotorEncoder.Get();
-		}
-		else{}
-
-		if (InnerLiftUp == true && InnerLiftDown == false){
-			LeftInnerLiftMotor.Set(InnerLiftSpeed * LeftInnerLiftUpDirection);
-			RightInnerLiftMotor.Set(InnerLiftSpeed * RightInnerLiftUpDirection);
-		}
-		else if (InnerLiftUp == false && InnerLiftDown == true){
-			LeftInnerLiftMotor.Set(InnerLiftSpeed * LeftInnerLiftUpDirection * -1);
-			RightInnerLiftMotor.Set(InnerLiftSpeed * RightInnerLiftUpDirection * -1);
 		}
 		else{
 			LeftInnerLiftMotor.Set(0.0);
 			RightInnerLiftMotor.Set(0.0);
 		}
-		*/
 	}
 
 	//Outer lift control
@@ -296,14 +290,29 @@ private:
 		//local declarations- get pov input
 		int leftPOV = LeftOpStick.GetPOV();
 		int rightPOV = RightOpStick.GetPOV();
-		float rightElbowValue = RightOpStick.GetZ();
-		float leftElbowValue = LeftOpStick.GetZ();
 
-		//Local Declarations-- makes joystick input close to zero zero
-		float elbowThreshold = 0.3;
+		bool leftOuterHome;
+		bool rightOuterHome;
+
+		float leftOuterZeroSensorValue = LeftOuterLiftZeroSensor.GetVoltage();
+		float rightOuterZeroSensorValue = RightOuterLiftZeroSensor.GetVoltage();
+
+		if (leftOuterZeroSensorValue < 2.5){
+			leftOuterHome = false;
+		}
+		else{
+			leftOuterHome = true;
+		}
+
+		if (rightOuterZeroSensorValue < 2.5){
+			rightOuterHome = false;
+		}
+		else{
+			rightOuterHome = true;
+		}
 
 		//left stick motor control
-		if (leftPOV == 315 || leftPOV == 0 || leftPOV == 45){
+		if ((leftPOV == 315 || leftPOV == 0 || leftPOV == 45) && !leftOuterHome){
 			LeftOuterLiftMotor.Set(leftArmSpeed);
 		}
 		else if (leftPOV == 135 || leftPOV == 180 || leftPOV == 225){
@@ -314,7 +323,7 @@ private:
 		}
 
 		//Right stick motor control
-		if (rightPOV == 315 || rightPOV == 0 || rightPOV == 45){
+		if ((rightPOV == 315 || rightPOV == 0 || rightPOV == 45) && !rightOuterHome){
 			RightOuterLiftMotor.Set(rightArmSpeed);
 		}
 		else if (rightPOV == 135 || rightPOV == 180 || rightPOV == 225){
@@ -323,10 +332,87 @@ private:
 		else{
 			RightOuterLiftMotor.Set(0.0);
 		}
+	}
 
-		//Elbow motor Controls
-		if(rightElbowValue >= elbowThreshold || rightElbowValue <= -elbowThreshold ){
+	void ElbowControl(void){
+		float leftElbowValue = LeftOpStick.GetZ();
+		float rightElbowValue = RightOpStick.GetZ();
+
+		bool leftElbowAuto = LeftOpStick.GetRawButton(leftElbowAutoButton);
+		bool rightElbowAuto = RightOpStick.GetRawButton(rightElbowAutoButton);
+
+		int currentLeftElbowEncoderValue = LeftElbowMotorEncoder.Get();
+		int currentRightElbowEncoderValue = RightElbowMotorEncoder.Get();
+
+		int targetLeftElbowEncoderValue;
+		int targetRightElbowEncoderValue;
+
+		int leftElbowEncoderZeroValue;
+		int rightElbowEncoderZeroValue;
+
+		bool leftElbowZeroSwitch = LeftElbowZeroSensor.Get();
+		bool rightElbowZeroSwitch = RightElbowZeroSensor.Get();
+
+		bool leftHome;
+		bool leftScore;
+		bool leftManual;
+		bool rightHome;
+		bool rightScore;
+		bool rightManual;
+
+		if (leftElbowZeroSwitch){
+			leftElbowEncoderZeroValue = currentLeftElbowEncoderValue;
+		}
+
+		if (rightElbowZeroSwitch){
+			rightElbowEncoderZeroValue = currentLeftElbowEncoderValue;
+		}
+
+		if ((leftElbowValue >= elbowThreshold) && leftElbowAuto){
+			leftHome = false;
+			leftScore = true;
+			leftManual = false;
+		}
+		else if ((leftElbowValue <= -elbowThreshold) && leftElbowAuto){
+			leftHome = true;
+			leftScore = false;
+			leftManual = false;
+		}
+		else{
+			leftHome = false;
+			leftScore = false;
+			leftManual = true;
+		}
+
+		if ((rightElbowValue >= elbowThreshold) && rightElbowAuto){
+			rightHome = true;
+			rightScore = false;
+			rightManual = false;
+		}
+		else if ((rightElbowValue <= -elbowThreshold) && rightElbowAuto){
+			rightHome = false;
+			rightScore = true;
+			rightManual = false;
+		}
+		else{
+			rightHome = false;
+			rightScore = false;
+			rightManual = true;
+		}
+
+		if (rightHome && !rightElbowZeroSwitch){
 			RightElbowMotor.Set(rightElbowValue * rightArmElbowInDirection);
+		}
+		else if (rightScore && ()){
+
+		}
+		else{
+
+		}
+
+		/*Elbow motor Controls
+		if(rightElbowValue >= elbowThreshold || rightElbowValue <= -elbowThreshold ){
+
 		}
 		else{
 			RightElbowMotor.Set(0.0);
@@ -338,8 +424,9 @@ private:
 		else{
 			LeftElbowMotor.Set(0.0);
 		}
-	}
+		*/
 
+	}
 	void TestPeriodic()
 	{
 		lw->Run();
