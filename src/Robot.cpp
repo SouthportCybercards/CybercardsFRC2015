@@ -4,7 +4,7 @@
 
 class Robot: public IterativeRobot
 {
-	RobotDrive RobotDrive; // robot drive system
+	RobotDrive RobotDriveBase; // robot drive system
 	Joystick LeftStick, RightStick, LeftOpStick, RightOpStick;
 	Talon LeftOuterLiftMotor;
 	Talon RightOuterLiftMotor;
@@ -61,6 +61,12 @@ class Robot: public IterativeRobot
 	int innerLiftEncoderZeroValue;
 	int targetInnerLiftEncoderValue;
 
+	//Global variables
+	bool leftAutoUp_prev = false;
+	bool leftAutoDown_prev = false;
+	bool rightAutoUp_prev = false;
+	bool rightAutoDown_prev = false;
+
 public:
 	//Class constructor
 	// Initialize the robot drive to:
@@ -73,7 +79,7 @@ public:
 	// +---------------------+
 	//			Back
 	Robot() :
-		RobotDrive(9, 8, 7, 6),	// these must be initialized in the same order
+		RobotDriveBase(9, 8, 7, 6),	// these must be initialized in the same order
 		LeftStick(0),
 		RightStick(1),// as they are declared above.
 		LeftOpStick(2),
@@ -95,14 +101,14 @@ public:
 		lw(NULL),
 		autoLoopCounter(0)
 	{
-		RobotDrive.SetExpiration(0.1);
-		RobotDrive.SetInvertedMotor(RobotDrive.kFrontLeftMotor,false);
-		RobotDrive.SetInvertedMotor(RobotDrive.kFrontRightMotor,false);
-		RobotDrive.SetInvertedMotor(RobotDrive.kRearLeftMotor,false);
-		RobotDrive.SetInvertedMotor(RobotDrive.kRearRightMotor,false);
+		RobotDriveBase.SetExpiration(0.1);
+		RobotDriveBase.SetInvertedMotor(RobotDriveBase.kFrontLeftMotor,false);
+		RobotDriveBase.SetInvertedMotor(RobotDriveBase.kFrontRightMotor,false);
+		RobotDriveBase.SetInvertedMotor(RobotDriveBase.kRearLeftMotor,false);
+		RobotDriveBase.SetInvertedMotor(RobotDriveBase.kRearRightMotor,false);
 
 		//Default variables to initial known state
-		innerLiftStateControl = false;
+		innerLiftStateControl = true;
 		targetLevel = 0;
 		innerLiftEncoderZeroValue = 0; //TODO - is this a good initial value?
 		targetInnerLiftEncoderValue = 0; //TODO - is this a good initial value?
@@ -123,14 +129,14 @@ private:
 	{
 		if(autoLoopCounter < 100) //Check if we've completed 100 loops (approximately 2 seconds)
 		{
-			RobotDrive.Drive(-0.5, 0.0); 	// drive forwards half speed
+			RobotDriveBase.Drive(-0.5, 0.0); 	// drive forwards half speed
 			autoLoopCounter++;
 		} else if(autoLoopCounter >= 100) {
 			 //Check if we've completed 100 loops (approximately 2 seconds)
-			RobotDrive.Drive(0.5, 0.0); 	// drive backwards half speed
+			RobotDriveBase.Drive(0.5, 0.0); 	// drive backwards half speed
 			autoLoopCounter++;
 		} //else {
-			//RobotDrive.Drive(0.0, 0.0); 	// stop robot
+			//RobotDriveBase.Drive(0.0, 0.0); 	// stop robot
 		//}
 	}
 
@@ -191,9 +197,9 @@ private:
 		//NOTE - currently this doesn't scale up the input from 0.0 after the deadband region -- it just uses the raw value.
 		if(yAxis1 >= driveThreshold || yAxis2 >= driveThreshold || yAxis1 <= -driveThreshold || yAxis2 <= -driveThreshold )
 		{
-			RobotDrive.TankDrive(-yAxis1,-yAxis2); 	// drive Forwards
+			RobotDriveBase.TankDrive(-yAxis1,-yAxis2); 	// drive Forwards
 		} else {
-			RobotDrive.TankDrive(0.0, 0.0); 	// stop robot
+			RobotDriveBase.TankDrive(0.0, 0.0); 	// stop robot
 		}
 
 	}
@@ -219,6 +225,10 @@ private:
 			RightInnerLiftMotor.Set(0.0);
 		}
 
+		//Testing Motor encoder
+		//int currentInnerLiftEncoderValue = InnerLiftMotorEncoder.Get();
+		//std::cout << "currentEncoderValue:"  << currentInnerLiftEncoderValue << std::endl;
+
 		//Testing limit switch
 		//bool innerLiftSwitchVal = InnerLiftZeroSensor.Get();
 		//std::cout << "innerLiftSwitchVal: " << innerLiftSwitchVal << std::endl;
@@ -243,7 +253,7 @@ private:
 		//If lift is zeroed - based on the limit switch - set the class member innerLiftEncoderZeroValue
 		//	to record what the zeroed encoder values is.
 		//TODO - perhaps this should be run regardless if in auto control or not.
-		if(innerZeroLimitSwitch == true){
+		if(innerZeroLimitSwitch == false){ //false=limit switch pressed
 			innerLiftEncoderZeroValue = currentInnerLiftEncoderValue;
 		}
 
@@ -251,14 +261,15 @@ private:
 		//If either of the state up buttons is pressed, update the target level to move to.
 		//TODO - should we debounce this?
 		// For example, we may want to only increment as we see an entire - button press then button release cycle.
-		if (leftAutoUp == true || rightAutoUp == true){
+		if (((leftAutoUp == true) && (leftAutoUp_prev == false)) || ((rightAutoUp == true) && (rightAutoUp_prev == false))){
 			if (targetLevel < maxLevel){
 				targetLevel++;
+
 			}
 		}
 		//If either of the state down buttons is pressed, update the target level to move to.
 		//TODO - should we debounce this?
-		else if(leftAutoDown == true || rightAutoDown == true){
+		else if (((leftAutoDown == true) && (leftAutoDown_prev == false)) || ((rightAutoDown == true) && (rightAutoDown_prev == false))){
 			if(targetLevel > minLevel){
 				targetLevel--;
 			}
@@ -271,11 +282,11 @@ private:
 		targetInnerLiftEncoderValue = ((targetLevel * innerLiftEncoderValue) + innerLiftEncoderZeroValue);
 
 		//Based on the target encoder value, handle motor commands.
-		if ((currentInnerLiftEncoderValue < targetInnerLiftEncoderValue) && !innerZeroLimitSwitch){
+		if ((currentInnerLiftEncoderValue < targetInnerLiftEncoderValue) && innerZeroLimitSwitch){
 			LeftInnerLiftMotor.Set(innerLiftSpeed * leftInnerLiftUpDirection);
 			RightInnerLiftMotor.Set(innerLiftSpeed * rightInnerLiftUpDirection);
 		}
-		else if ((currentInnerLiftEncoderValue > targetInnerLiftEncoderValue) && !innerZeroLimitSwitch){
+		else if ((currentInnerLiftEncoderValue > targetInnerLiftEncoderValue) && innerZeroLimitSwitch){
 			LeftInnerLiftMotor.Set(innerLiftSpeed * leftInnerLiftUpDirection * -1);
 			RightInnerLiftMotor.Set(innerLiftSpeed * rightInnerLiftUpDirection * -1);
 		}
@@ -283,11 +294,16 @@ private:
 			LeftInnerLiftMotor.Set(0.0);
 			RightInnerLiftMotor.Set(0.0);
 		}
+		std::cout << "leftAutoUp:"  << leftAutoUp << " tarVal: " << targetLevel << "leftAutoUp_prev: " << leftAutoUp_prev << std::endl;
+		leftAutoUp_prev = leftAutoUp;
+		leftAutoDown_prev = leftAutoDown;
+		rightAutoUp_prev = rightAutoUp;
+		rightAutoDown_prev = rightAutoDown;
 	}
 
 	//Outer lift control
 	void OuterLiftControl(void){
-		//local declarations- get pov input
+		//local declarations- get POV input
 		int leftPOV = LeftOpStick.GetPOV();
 		int rightPOV = RightOpStick.GetPOV();
 
@@ -403,11 +419,11 @@ private:
 		if (rightHome && !rightElbowZeroSwitch){
 			RightElbowMotor.Set(rightElbowValue * rightArmElbowInDirection);
 		}
-		else if (rightScore && ()){
+		//else if (rightScore && ()){
 
-		}
+		//}
 		else{
-
+			RightElbowMotor.Set(0.0);
 		}
 
 		/*Elbow motor Controls
