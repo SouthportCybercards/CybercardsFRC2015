@@ -46,6 +46,9 @@ class Robot: public IterativeRobot
 	const int rightInnerAutoDownButton = 3;
 	const int leftElbowAutoButton = 1;
 	const int rightElbowAutoButton = 1;
+	const int leftElbowAutoCenterButton = 2;
+	const int rightElbowAutoCenterButton = 2;
+
 
 	//Inner Lift constants
 	const int innerLiftEncoderValue = 10;
@@ -67,6 +70,10 @@ class Robot: public IterativeRobot
 	bool rightAutoUp_prev = false;
 	bool rightAutoDown_prev = false;
 
+
+	bool leftOuterHome_prev = false;
+	bool rightOuterHome_prev = false;
+	bool leftOuter;
 public:
 	//Class constructor
 	// Initialize the robot drive to:
@@ -307,20 +314,35 @@ private:
 		int leftPOV = LeftOpStick.GetPOV();
 		int rightPOV = RightOpStick.GetPOV();
 
+
+		// 			+--------------------+
+		//		   /|     			     |\
+		// 	      / | 		Robot		 | \
+		// 	     /  |    			     |  \
+		// 	    /   +--------------------+   \
+		//	home position				home position
+
+
+		// 		+---------------------+
+		//		|\     			     /|
+		// 	    | \		Robot		/ |
+		// 	    |  \  			   /  |
+		// 	    +---------------------+
+		//			center position R/L
 		bool leftOuterHome;
 		bool rightOuterHome;
 
 		float leftOuterZeroSensorValue = LeftOuterLiftZeroSensor.GetVoltage();
 		float rightOuterZeroSensorValue = RightOuterLiftZeroSensor.GetVoltage();
 
-		if (leftOuterZeroSensorValue < 2.5){
+		if (leftOuterZeroSensorValue > 2.5){
 			leftOuterHome = false;
 		}
 		else{
 			leftOuterHome = true;
 		}
 
-		if (rightOuterZeroSensorValue < 2.5){
+		if (rightOuterZeroSensorValue > 2.5){
 			rightOuterHome = false;
 		}
 		else{
