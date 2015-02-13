@@ -64,16 +64,19 @@ class Robot: public IterativeRobot
 	int innerLiftEncoderZeroValue;
 	int targetInnerLiftEncoderValue;
 
-	//Global variables
+	//Global variables for inner lift joystick buttons
 	bool leftAutoUp_prev = false;
 	bool leftAutoDown_prev = false;
 	bool rightAutoUp_prev = false;
 	bool rightAutoDown_prev = false;
 
+	//global variables for outer elbow joystick
+	bool leftElbowTrigger_prev = false;
+	bool rightElbowTrigger_prev = false;
+	//global variables for outer elbow joystick input mode
+	typedef enum ElbowInputMode_t{ AutoMode, ManualMode};
+	ElbowInputMode_t ElbowInputMode = AutoMode;
 
-	bool leftOuterHome_prev = false;
-	bool rightOuterHome_prev = false;
-	bool leftOuter;
 public:
 	//Class constructor
 	// Initialize the robot drive to:
@@ -227,7 +230,7 @@ private:
 			LeftInnerLiftMotor.Set(innerLiftSpeed * leftInnerLiftUpDirection * -1);
 			RightInnerLiftMotor.Set(innerLiftSpeed * rightInnerLiftUpDirection * -1);
 		}
-		else{
+		else {
 			LeftInnerLiftMotor.Set(0.0);
 			RightInnerLiftMotor.Set(0.0);
 		}
@@ -281,7 +284,7 @@ private:
 				targetLevel--;
 			}
 		}
-		else{
+		else {
 			//Intentionally empty
 		}
 
@@ -297,11 +300,11 @@ private:
 			LeftInnerLiftMotor.Set(innerLiftSpeed * leftInnerLiftUpDirection * -1);
 			RightInnerLiftMotor.Set(innerLiftSpeed * rightInnerLiftUpDirection * -1);
 		}
-		else{
+		else {
 			LeftInnerLiftMotor.Set(0.0);
 			RightInnerLiftMotor.Set(0.0);
 		}
-		std::cout << "leftAutoUp:"  << leftAutoUp << " tarVal: " << targetLevel << "leftAutoUp_prev: " << leftAutoUp_prev << std::endl;
+		//std::cout << "leftAutoUp:"  << leftAutoUp << " tarVal: " << targetLevel << "leftAutoUp_prev: " << leftAutoUp_prev << std::endl;
 		leftAutoUp_prev = leftAutoUp;
 		leftAutoDown_prev = leftAutoDown;
 		rightAutoUp_prev = rightAutoUp;
@@ -314,14 +317,12 @@ private:
 		int leftPOV = LeftOpStick.GetPOV();
 		int rightPOV = RightOpStick.GetPOV();
 
-
 		// 			+--------------------+
 		//		   /|     			     |\
 		// 	      / | 		Robot		 | \
 		// 	     /  |    			     |  \
 		// 	    /   +--------------------+   \
 		//	home position				home position
-
 
 		// 		+---------------------+
 		//		|\     			     /|
@@ -338,14 +339,14 @@ private:
 		if (leftOuterZeroSensorValue > 2.5){
 			leftOuterHome = false;
 		}
-		else{
+		else {
 			leftOuterHome = true;
 		}
 
 		if (rightOuterZeroSensorValue > 2.5){
 			rightOuterHome = false;
 		}
-		else{
+		else {
 			rightOuterHome = true;
 		}
 
@@ -356,7 +357,7 @@ private:
 		else if (leftPOV == 135 || leftPOV == 180 || leftPOV == 225){
 			LeftOuterLiftMotor.Set(leftArmSpeed * -1);
 		}
-		else{
+		else {
 			LeftOuterLiftMotor.Set(0.0);
 		}
 
@@ -367,7 +368,7 @@ private:
 		else if (rightPOV == 135 || rightPOV == 180 || rightPOV == 225){
 			RightOuterLiftMotor.Set(rightArmSpeed * -1);
 		}
-		else{
+		else {
 			RightOuterLiftMotor.Set(0.0);
 		}
 	}
@@ -382,21 +383,39 @@ private:
 		int currentLeftElbowEncoderValue = LeftElbowMotorEncoder.Get();
 		int currentRightElbowEncoderValue = RightElbowMotorEncoder.Get();
 
-		int targetLeftElbowEncoderValue;
-		int targetRightElbowEncoderValue;
-
-		int leftElbowEncoderZeroValue;
-		int rightElbowEncoderZeroValue;
-
 		bool leftElbowZeroSwitch = LeftElbowZeroSensor.Get();
 		bool rightElbowZeroSwitch = RightElbowZeroSensor.Get();
 
-		bool leftHome;
-		bool leftScore;
-		bool leftManual;
-		bool rightHome;
-		bool rightScore;
-		bool rightManual;
+		int targetLeftElbowEncoderValue;
+		int targetRightElbowEncoderValue;
+		int leftElbowEncoderHomeValue;
+		int rightElbowEncoderHomeValue;
+
+		bool leftHome = false;
+		bool leftScore = false;
+		bool leftManual = true;
+		bool rightHome = false;
+		bool rightScore = false;
+		bool rightManual = true;
+
+		//determine if trigger pressed
+		if (((leftElbowAuto == true) && (leftElbowTrigger_prev == false)) || ((rightElbowAuto == true) && (rightElbowTrigger_prev == false))){
+			//determine input state
+			if (ElbowInputMode == AutoMode){
+				ElbowInputMode = ManualMode;
+			}
+			else{
+				ElbowInputMode = AutoMode;
+			}
+		}
+
+		//determine input state
+		if (ElbowInputMode == AutoMode){
+
+		}
+		else{
+
+		}
 
 		if (leftElbowZeroSwitch){
 			leftElbowEncoderZeroValue = currentLeftElbowEncoderValue;
@@ -416,7 +435,7 @@ private:
 			leftScore = false;
 			leftManual = false;
 		}
-		else{
+		else {
 			leftHome = false;
 			leftScore = false;
 			leftManual = true;
@@ -432,7 +451,7 @@ private:
 			rightScore = true;
 			rightManual = false;
 		}
-		else{
+		else {
 			rightHome = false;
 			rightScore = false;
 			rightManual = true;
@@ -444,25 +463,33 @@ private:
 		//else if (rightScore && ()){
 
 		//}
-		else{
+		else {
 			RightElbowMotor.Set(0.0);
 		}
+
+		//if (((rightHome == true) && (rightHome_pre == false)) || ((rightAutoUp == true) && (rightAutoUp_prev == false))){
+			//if (targetLevel < maxLevel){
+			//targetLevel++;
 
 		/*Elbow motor Controls
 		if(rightElbowValue >= elbowThreshold || rightElbowValue <= -elbowThreshold ){
 
 		}
-		else{
+		else {
 			RightElbowMotor.Set(0.0);
 		}
 
 		if(leftElbowValue >= elbowThreshold || leftElbowValue <= -elbowThreshold){
 			LeftElbowMotor.Set(leftElbowValue * leftArmElbowInDirection);
 		}
-		else{
+		else {
 			LeftElbowMotor.Set(0.0);
 		}
 		*/
+
+		//update previous button values
+		leftElbowTrigger_prev = leftElbowAuto;
+		rightElbowTrigger_prev = rightElbowAuto;
 
 	}
 	void TestPeriodic()
