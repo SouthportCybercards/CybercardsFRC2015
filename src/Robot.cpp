@@ -20,9 +20,9 @@ class Robot: public IterativeRobot
 	float RightArmUpSpeed = 1.0;
 	float LeftElbowInSpeed = 1.0;
 	float RightElbowInSpeed = 1.0;
-	float InnerLiftSpeed = 1.0;
-	float LeftInnerLiftUpDirection = -1.0;
-	float RightInnerLiftUpDirection = 1.0;
+	float InnerLiftSpeed = 0.4;
+	float LeftInnerLiftUpDirection = 1.0;
+	float RightInnerLiftUpDirection = -1.0;
 	float LeftArmElbowInDirection = 1.0;
 	float RightArmElbowInDirection = 1.0;
 
@@ -78,17 +78,18 @@ private:
 
 	void AutonomousPeriodic()
 	{
-		if(autoLoopCounter < 100) //Check if we've completed 100 loops (approximately 2 seconds)
+		if(autoLoopCounter < 500) //Check if we've completed 500 loops (approximately 10 seconds)
 		{
 			robotDrive.Drive(-0.5, 0.0); 	// drive forwards half speed
 			autoLoopCounter++;
-		} else if(autoLoopCounter >= 100) {
+		} //else if((autoLoopCounter >= 100) && (autoLoopCounter < 200)) {
 			 //Check if we've completed 100 loops (approximately 2 seconds)
-			robotDrive.Drive(0.5, 0.0); 	// drive backwards half speed
-			autoLoopCounter++;
-		} //else {
-			//robotDrive.Drive(0.0, 0.0); 	// stop robot
+			//robotDrive.Drive(0.5, 0.0); 	// drive backwards half speed
+			//autoLoopCounter++;
 		//}
+		else {
+			robotDrive.Drive(0.0, 0.0); 	// stop robot
+		}
 	}
 
 	void TeleopInit()
@@ -124,8 +125,9 @@ private:
 		float driveThreshold = 0.005;
 
 		//Get the y-axis of the joystick
-		float yAxis1 = 0.75 * leftStick.GetY();
-		float yAxis2 = 0.72 * rightStick.GetY();
+
+		float yAxis1 = 1 * leftStick.GetY();
+		float yAxis2 = 1 * rightStick.GetY();
 
 		//std::cout << "yAxisVal: " << yAxisVal << std::endl;
 
@@ -150,21 +152,30 @@ private:
 		int rightManualUp = rightOpStick.GetRawButton(RightInnerManualUpButton);
 		int rightManualDown = rightOpStick.GetRawButton(RightInnerManualDownButton);
 
-		if (leftManualUp == true || rightManualUp == true){
-			LeftInnerLiftMotor.Set(InnerLiftSpeed * LeftInnerLiftUpDirection);
-			RightInnerLiftMotor.Set(InnerLiftSpeed * RightInnerLiftUpDirection);
-		}
-		else if (leftManualDown == true || rightManualDown == true){
-			LeftInnerLiftMotor.Set(InnerLiftSpeed * LeftInnerLiftUpDirection * -1);
-			RightInnerLiftMotor.Set(InnerLiftSpeed * RightInnerLiftUpDirection * -1);
-		}
-		else{
-			LeftInnerLiftMotor.Set(0.0);
-			RightInnerLiftMotor.Set(0.0);
+		//Outer if else is for y axis on stick control
+		float liftThreshold = 0.05;
+
+		//Get the y-axis of the joystick
+		float yAxisA = leftOpStick.GetY();
+		//float yAxisB = 0.72 * rightOpStick.GetY();
+		if (yAxisA >= liftThreshold || yAxisA <= -liftThreshold ){
+			LeftInnerLiftMotor.Set(LeftInnerLiftUpDirection * yAxisA);
+			RightInnerLiftMotor.Set(RightInnerLiftUpDirection * yAxisA);
+		} else {
+			if (leftManualUp == true || rightManualUp == true){
+				LeftInnerLiftMotor.Set(InnerLiftSpeed * LeftInnerLiftUpDirection);
+				RightInnerLiftMotor.Set(InnerLiftSpeed * RightInnerLiftUpDirection);
+			}
+			else if (leftManualDown == true || rightManualDown == true){
+				LeftInnerLiftMotor.Set(InnerLiftSpeed * LeftInnerLiftUpDirection * -1);
+				RightInnerLiftMotor.Set(InnerLiftSpeed * RightInnerLiftUpDirection * -1);
+			}
+			else{
+				LeftInnerLiftMotor.Set(0.0);
+				RightInnerLiftMotor.Set(0.0);
+			}
 		}
 	}
-
-
 	//Outer lift control
 	void OuterLiftControl(void){
 		//local declarations- get pov input
@@ -220,4 +231,6 @@ private:
 	}
 };
 
+
 START_ROBOT_CLASS(Robot);
+
