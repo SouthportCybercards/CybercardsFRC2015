@@ -21,8 +21,10 @@ class Robot: public IterativeRobot
 	float LeftElbowInSpeed = 1.0;
 	float RightElbowInSpeed = 1.0;
 	float InnerLiftSpeed = 0.4;
-	float LeftInnerLiftUpDirection = 1.0;
-	float RightInnerLiftUpDirection = -1.0;
+	float LeftInnerLiftButtonUpDirection = 1.0;
+	float RightInnerLiftButtonUpDirection = -1.0;
+	float LeftInnerLiftYAxisUpDirection = -1.0;
+	float RightInnerLiftYAxisUpDirection = 1.0;
 	float LeftArmElbowInDirection = 1.0;
 	float RightArmElbowInDirection = 1.0;
 
@@ -159,16 +161,17 @@ private:
 		float yAxisA = leftOpStick.GetY();
 		//float yAxisB = 0.72 * rightOpStick.GetY();
 		if (yAxisA >= liftThreshold || yAxisA <= -liftThreshold ){
-			LeftInnerLiftMotor.Set(LeftInnerLiftUpDirection * yAxisA);
-			RightInnerLiftMotor.Set(RightInnerLiftUpDirection * yAxisA);
+			LeftInnerLiftMotor.Set(LeftInnerLiftYAxisUpDirection * yAxisA);
+			RightInnerLiftMotor.Set(RightInnerLiftYAxisUpDirection * yAxisA);
 		} else {
+			//this inner if else structure describes the button driven control
 			if (leftManualUp == true || rightManualUp == true){
-				LeftInnerLiftMotor.Set(InnerLiftSpeed * LeftInnerLiftUpDirection);
-				RightInnerLiftMotor.Set(InnerLiftSpeed * RightInnerLiftUpDirection);
+				LeftInnerLiftMotor.Set(InnerLiftSpeed * LeftInnerLiftButtonUpDirection);
+				RightInnerLiftMotor.Set(InnerLiftSpeed * RightInnerLiftButtonUpDirection);
 			}
 			else if (leftManualDown == true || rightManualDown == true){
-				LeftInnerLiftMotor.Set(InnerLiftSpeed * LeftInnerLiftUpDirection * -1);
-				RightInnerLiftMotor.Set(InnerLiftSpeed * RightInnerLiftUpDirection * -1);
+				LeftInnerLiftMotor.Set(InnerLiftSpeed * LeftInnerLiftButtonUpDirection * -1);
+				RightInnerLiftMotor.Set(InnerLiftSpeed * RightInnerLiftButtonUpDirection * -1);
 			}
 			else{
 				LeftInnerLiftMotor.Set(0.0);
