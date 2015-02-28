@@ -12,6 +12,7 @@ class Robot: public IterativeRobot
 	Talon RightElbowMotor;
 	Talon LeftInnerLiftMotor;
 	Talon RightInnerLiftMotor;
+	DigitalInput AutoSwitch;
 	LiveWindow *lw;
 	int autoLoopCounter;
 
@@ -57,6 +58,7 @@ public:
 		RightElbowMotor(3),
 		LeftInnerLiftMotor(4),
 		RightInnerLiftMotor(5),
+		AutoSwitch(9),
 		lw(NULL),
 		autoLoopCounter(0)
 	{
@@ -76,22 +78,28 @@ private:
 	void AutonomousInit()
 	{
 		autoLoopCounter = 0;
+
 	}
 
 	void AutonomousPeriodic()
 	{
-		if(autoLoopCounter < 500) //Check if we've completed 500 loops (approximately 10 seconds)
-		{
-			robotDrive.Drive(-0.5, 0.0); 	// drive forwards half speed
-			autoLoopCounter++;
-		} //else if((autoLoopCounter >= 100) && (autoLoopCounter < 200)) {
-			 //Check if we've completed 100 loops (approximately 2 seconds)
-			//robotDrive.Drive(0.5, 0.0); 	// drive backwards half speed
-			//autoLoopCounter++;
-		//}
-		else {
-			robotDrive.Drive(0.0, 0.0); 	// stop robot
+		if(AutoSwitch.Get() == true){
+			if(autoLoopCounter < 70) //Check if we've completed 500 loops (approximately 10 seconds)
+			{
+				robotDrive.Drive(0.5, 0.0); 	// drive forwards half speed
+				autoLoopCounter++;
+			} //else if((autoLoopCounter >= 100) && (autoLoopCounter < 200)) {
+				 //Check if we've completed 100 loops (approximately 2 seconds)
+				//robotDrive.Drive(0.5, 0.0); 	// drive backwards half speed
+				//autoLoopCounter++;
+			//}
+			else {
+				robotDrive.Drive(0.0, 0.0); 	// stop robot
+			}
+		}else{
+			//intentionally blank
 		}
+		std::cout << "AutoSwitch: " << AutoSwitch.Get() << std::endl;
 	}
 
 	void TeleopInit()
