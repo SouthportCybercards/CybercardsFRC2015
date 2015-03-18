@@ -116,7 +116,7 @@ private:
 		}else{
 			//intentionally blank
 		}
-		std::cout << "AutoIO: " << AutoIO.Get() << "AutoSelect: "<< AutoSelect.Get() << std::endl;
+		//std::cout << "AutoIO: " << AutoIO.Get() << "AutoSelect: "<< AutoSelect.Get() << std::endl;
 	}
 
 	void TeleopInit()
@@ -210,6 +210,7 @@ private:
 		//int leftPOV = leftOpStick.GetPOV();
 		//int rightPOV = rightOpStick.GetPOV();
 		float rightElbowValue = rightOpStick.GetZ();
+		float leftElbowValue = leftOpStick.GetZ();
 		float rightVertical = rightOpStick.GetY();
 		//float leftElbowValue = leftOpStick.GetZ();
 
@@ -250,12 +251,13 @@ private:
 			RightElbowMotor.Set(0.0);
 		}
 
-		//if(leftElbowValue >= elbowThreshold || leftElbowValue <= -elbowThreshold){
-			//LeftElbowMotor.Set(leftElbowValue * LeftArmElbowInDirection);
-		//}
-		//else{
-			//LeftElbowMotor.Set(0.0);
-		//}
+		if(leftElbowValue >= elbowThreshold || leftElbowValue <= -elbowThreshold ){ //tote stopper
+			LeftElbowMotor.Set(leftElbowValue * LeftArmElbowInDirection * LeftElbowInSpeed);
+		}
+		else{
+			LeftElbowMotor.Set(0.0);
+		}
+
 	}
 
 	void TestPeriodic()
