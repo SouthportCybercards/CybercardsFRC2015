@@ -20,8 +20,8 @@ class Robot: public IterativeRobot
 	//Motor Direction output constants
 	float LeftArmUpSpeed = 0.3;
 	float RightArmUpSpeed = 0.3;
-	float LeftElbowInSpeed = 0.3;
-	float RightElbowInSpeed = 0.3;
+	float LeftElbowInSpeed = 1.0;
+	float RightElbowInSpeed = 1.0;
 	float InnerLiftSpeed = 0.4;
 	float LeftInnerLiftButtonUpDirection = 1.0;
 	float RightInnerLiftButtonUpDirection = -1.0;
@@ -100,7 +100,7 @@ private:
 					robotDrive.Drive(0.0, 0.0); 	// stop robot
 				}
 			}else{
-				if(autoLoopCounter < 168) //Check if we've completed 168 loops
+				if(autoLoopCounter < 134) //Check if we've completed 168 loops
 				{
 					robotDrive.Drive(0.5, 0.0); 	// drive forwards half speed with no curve correction
 					autoLoopCounter++;
@@ -116,7 +116,7 @@ private:
 		}else{
 			//intentionally blank
 		}
-		//std::cout << "AutoIO: " << AutoIO.Get() << "AutoSelect: "<< AutoSelect.Get() << std::endl;
+		std::cout << "AutoIO: " << AutoIO.Get() << "AutoSelect: "<< AutoSelect.Get() << std::endl;
 	}
 
 	void TeleopInit()
@@ -209,13 +209,13 @@ private:
 		//local declarations- get pov input
 		//int leftPOV = leftOpStick.GetPOV();
 		//int rightPOV = rightOpStick.GetPOV();
-		float rightElbowValue = rightOpStick.GetZ();
-		float leftElbowValue = leftOpStick.GetZ();
-		float rightVertical = rightOpStick.GetY();
-		//float leftElbowValue = leftOpStick.GetZ();
+		////float rightElbowValue = rightOpStick.GetZ();
+		///float leftElbowValue = leftOpStick.GetZ();
+		////float rightVertical = rightOpStick.GetY();
+		////float leftElbowValue = leftOpStick.GetZ();
 
 		//Local Declarations-- makes joystick input close to zero zero
-		float elbowThreshold = 0.55;
+		////float elbowThreshold = 0.55;
 
 		//left stick motor control
 		//if (leftPOV == 315 || leftPOV == 0 || leftPOV == 45){
@@ -230,35 +230,35 @@ private:
 
 		//Right stick motor control
 		//if (rightPOV == 315 || rightPOV == 0 || rightPOV == 45){
-		if (rightVertical >= elbowThreshold ){
-			RightOuterLiftMotor.Set(RightArmUpSpeed);
-		}
-		else if (rightVertical <= -elbowThreshold){
-			RightOuterLiftMotor.Set(-RightArmUpSpeed);
-		}
-		//else if (rightPOV == 135 || rightPOV == 180 || rightPOV == 225){
-			//RightOuterLiftMotor.Set(RightArmUpSpeed * -1);
+//		if (rightVertical >= elbowThreshold ){
+//			RightOuterLiftMotor.Set(RightArmUpSpeed);
+//		}
+//		else if (rightVertical <= -elbowThreshold){
+//			RightOuterLiftMotor.Set(-RightArmUpSpeed);
+//		}
+//		//else if (rightPOV == 135 || rightPOV == 180 || rightPOV == 225){
+//			//RightOuterLiftMotor.Set(RightArmUpSpeed * -1);
+//		//}
+//		else{
+			////RightOuterLiftMotor.Set(0.0);
 		//}
-		else{
-			RightOuterLiftMotor.Set(0.0);
-		}
 
 		//Elbow motor Controls
-		if(rightElbowValue >= elbowThreshold || rightElbowValue <= -elbowThreshold ){
-			RightElbowMotor.Set(rightElbowValue * RightArmElbowInDirection * RightElbowInSpeed);
-		}
-		else{
-			RightElbowMotor.Set(0.0);
-		}
-
-		if(leftElbowValue >= elbowThreshold || leftElbowValue <= -elbowThreshold ){ //tote stopper
-			LeftElbowMotor.Set(leftElbowValue * LeftArmElbowInDirection * LeftElbowInSpeed);
-		}
-		else{
-			LeftElbowMotor.Set(0.0);
-		}
-
-	}
+//		if(rightElbowValue >= elbowThreshold || rightElbowValue <= -elbowThreshold ){
+//			RightElbowMotor.Set(rightElbowValue * RightArmElbowInDirection * RightElbowInSpeed);
+//		}
+//		else{
+//			RightElbowMotor.Set(0.0);
+//		}
+//
+//		if(leftElbowValue >= elbowThreshold || leftElbowValue <= -elbowThreshold ){ //tote stopper
+//			LeftElbowMotor.Set(leftElbowValue * LeftArmElbowInDirection * LeftElbowInSpeed);
+//		}
+//		else{
+//			LeftElbowMotor.Set(0.0);
+//		}
+//
+}
 
 	void TestPeriodic()
 	{
