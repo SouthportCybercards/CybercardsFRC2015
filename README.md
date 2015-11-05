@@ -1,29 +1,16 @@
-# README #
+# 2015 robot code #
 
-This README would normally document whatever steps are necessary to get your application up and running.
+This is the code for the 2015 FRC game (Recycle Rush), from team 1529. 
 
 ### What is this repository for? ###
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+* Contains both code for Yertle/Buttercup and for Babybot (a basic 6 wheel, 4 motor drivebase)
+
 
 ### How do I get set up? ###
 
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
+* download the code
+* open it in eclipse
+* rigltclick build.xml, run as ant build with roborio tethered over usb
 
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
+* Requires wpilib
