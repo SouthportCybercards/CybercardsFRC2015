@@ -6,8 +6,16 @@ class Robot: public IterativeRobot
 {
 	RobotDrive robotDrive; // robot drive system
 	Joystick leftStick, rightStick;
+	Talon Banner;
+	DigitalInput AutoBanner;
 	LiveWindow *lw;
 	int autoLoopCounter;
+	
+	float BannerSpeed= 0.05;
+	float BannerDirection = 1.0;
+
+	int BannerToggleON = 5;
+	int BannerToggleOFF = 3;
 
 public:
 	//Class constructor
@@ -24,6 +32,8 @@ public:
 		robotDrive(9, 8, 7, 6),	// these must be initialized in the same order
 		leftStick(0),
 		rightStick(1),// as they are declared above.
+		Banner(1),
+		AutoBanner(3),
 		lw(NULL),
 		autoLoopCounter(0)
 	{
@@ -48,38 +58,6 @@ private:
 
 	void AutonomousPeriodic()
 	{
-	//	if(AutoIO.Get() == true){
-		//	if(AutoSelect.Get() == false){
-			//	if(autoLoopCounter < 50) //Check if we've completed 500 loops (approximately 10 seconds)---time 168 or 50
-			//	{
-				//	robotDrive.Drive(0.5, 0); 	// drive forwards half speed--(0.03 for 160 0 for 50
-				//	autoLoopCounter++;
-			//	} //else if((autoLoopCounter >= 100) && (autoLoopCounter < 200)) {
-					 //Check if we've completed 100 loops (approximately 2 seconds)
-					//robotDrive.Drive(0.5, 0.0); 	// drive backwards half speed
-					//autoLoopCounter++;
-				//}
-			//	else {
-				//	robotDrive.Drive(0.0, 0.0); 	// stop robot
-			//	}
-		//	}else{
-			//	if(autoLoopCounter < 134) //Check if we've completed 168 loops
-			//	{
-			//		robotDrive.Drive(0.5, 0.0); 	// drive forwards half speed with no curve correction
-				//	autoLoopCounter++;
-			//	} //else if((autoLoopCounter >= 100) && (autoLoopCounter < 200)) {
-					 //Check if we've completed 100 loops (approximately 2 seconds)
-					//robotDrive.Drive(0.5, 0.0); 	// drive backwards half speed
-					//autoLoopCounter++;
-				//}
-			//	else {
-				//	robotDrive.Drive(0.0, 0.0); 	// stop robot
-			//	}
-		//	}
-	//	}else{
-			//intentionally blank
-		//}
-		//std::cout << "AutoIO: " << AutoIO.Get() << "AutoSelect: "<< AutoSelect.Get() << std::endl;
 	}
 
 	void TeleopInit()
@@ -100,6 +78,12 @@ private:
 
 		//Handle the drive base control
 		DriveBaseControl();
+		
+		//Handle Banner Auton
+		BannerAuto();
+		
+		//handle manual banner control
+		BannerManual();
 	}
 
 	//Drive base control
@@ -128,15 +112,24 @@ private:
 		}
 
 	}
-
-	
-}
+	void BannerAuto(void){
+		if(BannerToggleON == true)
+		{
+			BannerAutoInt = 5
+		} else {
+			BannerAutoInt = 1
+		}
+	while(BannerAutoInt == 5){
+		Banner.Set(BannerSpeed * BannerDirection);
+} else {
+	Banner.Set(0.0);
+		
+	}
 
 	void TestPeriodic()
 	{
 		lw->Run();
 	}
-};
 
 
 START_ROBOT_CLASS(Robot);
