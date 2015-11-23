@@ -5,9 +5,36 @@
 class Robot: public IterativeRobot
 {
 	RobotDrive robotDrive; // robot drive system
-	Joystick leftStick, rightStick;
+	Joystick leftStick, rightStick, leftOpStick, rightOpStick;
+	Talon LeftOuterLiftMotor;
+	Talon RightOuterLiftMotor;
+	Talon LeftElbowMotor;
+	Talon RightElbowMotor;
+	Talon LeftInnerLiftMotor;
+	Talon RightInnerLiftMotor;
+	DigitalInput AutoIO;
+	DigitalInput AutoSelect;
 	LiveWindow *lw;
 	int autoLoopCounter;
+
+	//Motor Direction output constants
+	float LeftArmUpSpeed = 0.3;
+	float RightArmUpSpeed = 0.3;
+	float LeftElbowInSpeed = 1.0;
+	float RightElbowInSpeed = 1.0;
+	float InnerLiftSpeed = 0.4;
+	float LeftInnerLiftButtonUpDirection = 1.0;
+	float RightInnerLiftButtonUpDirection = -1.0;
+	float LeftInnerLiftYAxisUpDirection = -1.0;
+	float RightInnerLiftYAxisUpDirection = 1.0;
+	float LeftArmElbowInDirection = 1.0;
+	float RightArmElbowInDirection = 1.0;
+
+	//Joystick button input constants
+	int LeftInnerManualUpButton = 5;
+	int LeftInnerManualDownButton = 3;
+	int RightInnerManualUpButton = 6;
+	int RightInnerManualDownButton = 4;
 
 public:
 	//Class constructor
@@ -24,6 +51,16 @@ public:
 		robotDrive(9, 8, 7, 6),	// these must be initialized in the same order
 		leftStick(0),
 		rightStick(1),// as they are declared above.
+		leftOpStick(2),
+		rightOpStick(3),
+		LeftOuterLiftMotor(0),
+		RightOuterLiftMotor(1),
+		LeftElbowMotor(2),
+		RightElbowMotor(3),
+		LeftInnerLiftMotor(4),
+		RightInnerLiftMotor(5),
+		AutoIO(9),
+		AutoSelect(8),
 		lw(NULL),
 		autoLoopCounter(0)
 	{
@@ -48,38 +85,38 @@ private:
 
 	void AutonomousPeriodic()
 	{
-	//	if(AutoIO.Get() == true){
-		//	if(AutoSelect.Get() == false){
-			//	if(autoLoopCounter < 50) //Check if we've completed 500 loops (approximately 10 seconds)---time 168 or 50
-			//	{
-				//	robotDrive.Drive(0.5, 0); 	// drive forwards half speed--(0.03 for 160 0 for 50
-				//	autoLoopCounter++;
-			//	} //else if((autoLoopCounter >= 100) && (autoLoopCounter < 200)) {
+		if(AutoIO.Get() == true){
+			if(AutoSelect.Get() == false){
+				if(autoLoopCounter < 50) //Check if we've completed 500 loops (approximately 10 seconds)---time 168 or 50
+				{
+					robotDrive.Drive(0.5, 0); 	// drive forwards half speed--(0.03 for 160 0 for 50
+					autoLoopCounter++;
+				} //else if((autoLoopCounter >= 100) && (autoLoopCounter < 200)) {
 					 //Check if we've completed 100 loops (approximately 2 seconds)
 					//robotDrive.Drive(0.5, 0.0); 	// drive backwards half speed
 					//autoLoopCounter++;
 				//}
-			//	else {
-				//	robotDrive.Drive(0.0, 0.0); 	// stop robot
-			//	}
-		//	}else{
-			//	if(autoLoopCounter < 134) //Check if we've completed 168 loops
-			//	{
-			//		robotDrive.Drive(0.5, 0.0); 	// drive forwards half speed with no curve correction
-				//	autoLoopCounter++;
-			//	} //else if((autoLoopCounter >= 100) && (autoLoopCounter < 200)) {
+				else {
+					robotDrive.Drive(0.0, 0.0); 	// stop robot
+				}
+			}else{
+				if(autoLoopCounter < 134) //Check if we've completed 168 loops
+				{
+					robotDrive.Drive(0.5, 0.0); 	// drive forwards half speed with no curve correction
+					autoLoopCounter++;
+				} //else if((autoLoopCounter >= 100) && (autoLoopCounter < 200)) {
 					 //Check if we've completed 100 loops (approximately 2 seconds)
 					//robotDrive.Drive(0.5, 0.0); 	// drive backwards half speed
 					//autoLoopCounter++;
 				//}
-			//	else {
-				//	robotDrive.Drive(0.0, 0.0); 	// stop robot
-			//	}
-		//	}
-	//	}else{
+				else {
+					robotDrive.Drive(0.0, 0.0); 	// stop robot
+				}
+			}
+		}else{
 			//intentionally blank
-		//}
-		//std::cout << "AutoIO: " << AutoIO.Get() << "AutoSelect: "<< AutoSelect.Get() << std::endl;
+		}
+		std::cout << "AutoIO: " << AutoIO.Get() << "AutoSelect: "<< AutoSelect.Get() << std::endl;
 	}
 
 	void TeleopInit()
@@ -100,6 +137,12 @@ private:
 
 		//Handle the drive base control
 		DriveBaseControl();
+
+		//Handle the main lift
+		InnerLiftControl();
+
+		//Handle the outer lift
+		OuterLiftControl();
 	}
 
 	//Drive base control
@@ -129,7 +172,92 @@ private:
 
 	}
 
-	
+	//Inner lift control
+	void InnerLiftControl(void){
+		int leftManualUp = leftOpStick.GetRawButton(LeftInnerManualUpButton);
+		int leftManualDown = leftOpStick.GetRawButton(LeftInnerManualDownButton);
+		int rightManualUp = rightOpStick.GetRawButton(RightInnerManualUpButton);
+		int rightManualDown = rightOpStick.GetRawButton(RightInnerManualDownButton);
+
+		//Outer if else is for y axis on stick control
+		float liftThreshold = 0.1;
+
+		//Get the y-axis of the joystick
+		float yAxisA = leftOpStick.GetY();
+		//float yAxisB = 0.72 * rightOpStick.GetY();
+		if (yAxisA >= liftThreshold || yAxisA <= -liftThreshold ){
+			LeftInnerLiftMotor.Set(LeftInnerLiftYAxisUpDirection * yAxisA);
+			RightInnerLiftMotor.Set(RightInnerLiftYAxisUpDirection * yAxisA);
+		} else {
+			//this inner if else structure describes the button driven control
+			if (leftManualUp == true || rightManualUp == true){
+				LeftInnerLiftMotor.Set(InnerLiftSpeed * LeftInnerLiftButtonUpDirection);
+				RightInnerLiftMotor.Set(InnerLiftSpeed * RightInnerLiftButtonUpDirection);
+			}
+			else if (leftManualDown == true || rightManualDown == true){
+				LeftInnerLiftMotor.Set(InnerLiftSpeed * LeftInnerLiftButtonUpDirection * -1);
+				RightInnerLiftMotor.Set(InnerLiftSpeed * RightInnerLiftButtonUpDirection * -1);
+			}
+			else{
+				LeftInnerLiftMotor.Set(0.0);
+				RightInnerLiftMotor.Set(0.0);
+			}
+		}
+	}
+	//Outer lift control
+	void OuterLiftControl(void){
+		//local declarations- get pov input
+		//int leftPOV = leftOpStick.GetPOV();
+		//int rightPOV = rightOpStick.GetPOV();
+		////float rightElbowValue = rightOpStick.GetZ();
+		///float leftElbowValue = leftOpStick.GetZ();
+		////float rightVertical = rightOpStick.GetY();
+		////float leftElbowValue = leftOpStick.GetZ();
+
+		//Local Declarations-- makes joystick input close to zero zero
+		////float elbowThreshold = 0.55;
+
+		//left stick motor control
+		//if (leftPOV == 315 || leftPOV == 0 || leftPOV == 45){
+			//LeftOuterLiftMotor.Set(LeftArmUpSpeed);
+		//}
+		//else if (leftPOV == 135 || leftPOV == 180 || leftPOV == 225){
+			//LeftOuterLiftMotor.Set(LeftArmUpSpeed * -1);
+		//}
+		//else{
+			//LeftOuterLiftMotor.Set(0.0);
+		//}
+
+		//Right stick motor control
+		//if (rightPOV == 315 || rightPOV == 0 || rightPOV == 45){
+//		if (rightVertical >= elbowThreshold ){
+//			RightOuterLiftMotor.Set(RightArmUpSpeed);
+//		}
+//		else if (rightVertical <= -elbowThreshold){
+//			RightOuterLiftMotor.Set(-RightArmUpSpeed);
+//		}
+//		//else if (rightPOV == 135 || rightPOV == 180 || rightPOV == 225){
+//			//RightOuterLiftMotor.Set(RightArmUpSpeed * -1);
+//		//}
+//		else{
+			////RightOuterLiftMotor.Set(0.0);
+		//}
+
+		//Elbow motor Controls
+//		if(rightElbowValue >= elbowThreshold || rightElbowValue <= -elbowThreshold ){
+//			RightElbowMotor.Set(rightElbowValue * RightArmElbowInDirection * RightElbowInSpeed);
+//		}
+//		else{
+//			RightElbowMotor.Set(0.0);
+//		}
+//
+//		if(leftElbowValue >= elbowThreshold || leftElbowValue <= -elbowThreshold ){ //tote stopper
+//			LeftElbowMotor.Set(leftElbowValue * LeftArmElbowInDirection * LeftElbowInSpeed);
+//		}
+//		else{
+//			LeftElbowMotor.Set(0.0);
+//		}
+//
 }
 
 	void TestPeriodic()
@@ -140,4 +268,3 @@ private:
 
 
 START_ROBOT_CLASS(Robot);
-
